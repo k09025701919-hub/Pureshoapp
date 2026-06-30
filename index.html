@@ -178,6 +178,10 @@
       <button class="logout" onclick="logout()">ログアウト</button>
     </div>
     <div class="admin-summary" id="admin-summary"></div>
+    <div style="display:flex;gap:8px;padding:0 20px 14px;flex-wrap:wrap;">
+      <button class="secondary" style="width:auto;margin:0;" onclick="showFullSchedule()">📅 全体シフト一覧を見る</button>
+      <button class="secondary" style="width:auto;margin:0;" onclick="showLoginHistory()">🕘 ログイン履歴を見る（この端末のみ）</button>
+    </div>
     <div class="adminnote">全86名のステータス一覧です。バッジをタップすると済み／未対応を切り替えられます。「パスワード」欄の「リセット」をタップすると、この端末に保存されているそのスタッフのパスワードを削除し、次回ログイン時に再設定できる状態に戻せます（※この操作は今あなたが見ている端末のブラウザにのみ影響し、本人のスマホには影響しません）。</div>
     <div class="admin-wrap-table">
       <table class="admintable" id="admin-table"></table>
@@ -302,6 +306,7 @@ function backToLogin(){
 
 function enterAs(person){
   current = person;
+  logLogin(person.name);
   document.getElementById('root').className = 'wrap' + (person.isAdmin ? ' admin' : '');
 
   if(person.isAdmin){
@@ -467,6 +472,71 @@ function closeShiftEditor(){
 }
 function closeShiftEditorOutside(e){
   if(e.target.id === 'shift-overlay') closeShiftEditor();
+}
+
+function logLogin(name){
+  try{
+    const key = 'kinshachi_login_log';
+    let log = JSON.parse(localStorage.getItem(key)) || [];
+    log.push({name: name, time: new Date().toLocaleString('ja-JP')});
+    if(log.length > 300) log = log.slice(log.length - 300);
+    localStorage.setItem(key, JSON.stringify(log));
+  }catch(e){}
+}
+
+function openGenericSheet(title, sub, bodyHtml){
+  document.getElementById('sheet-title').textContent = title;
+  document.getElementById('sheet-sub').textContent = sub;
+  document.getElementById('sheet-text').innerHTML = bodyHtml;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function showFullSchedule(){
+  const staffOnly = PEOPLE.filter(p=>!p.isAdmin && !p.isStandby);
+  let entries = [];
+  staffOnly.forEach(p=>{
+    effectiveShifts(p).forEach(s=>{
+      entries.push({date: s.date, place: s.place, role: s.role, name: p.name});
+    });
+  });
+  function dateKey(d){
+    const m = (d||'').match(/(\d+)月(\d+)日/);
+    return m ? parseInt(m[1],10)*100 + parseInt(m[2],10) : 9999;
+  }
+  entries.sort((a,b)=>{
+    const dk = dateKey(a.date) - dateKey(b.date);
+    if(dk !== 0) return dk;
+    if(a.place !== b.place) return a.place < b.place ? -1 : 1;
+    return a.role === 'ディレクター' ? -1 : 1;
+  });
+  let html = '';
+  let lastKey = '';
+  entries.forEach(e=>{
+    const key = e.date + '|' + e.place;
+    if(key !== lastKey){
+      html += '<div class="sec">' + e.date + '　' + e.place + '</div>';
+      lastKey = key;
+    }
+    const cls = e.role === 'ディレクター' ? 'imp' : '';
+    html += '<div class="ln ' + cls + '"><span class="lb">' + e.role + '：</span>' + e.name + '</div>';
+  });
+  if(!html) html = '<div class="ln">シフトデータがありません。</div>';
+  openGenericSheet('全体シフト一覧', '日付・場所ごとの全スタッフ配置（この端末の編集内容を含む）', html);
+}
+
+function showLoginHistory(){
+  let log = [];
+  try{ log = JSON.parse(localStorage.getItem('kinshachi_login_log')) || []; }catch(e){}
+  log = log.slice().reverse();
+  let html = '';
+  if(log.length === 0){
+    html = '<div class="ln">この端末でのログイン履歴はまだありません。</div>';
+  } else {
+    log.forEach(l=>{
+      html += '<div class="ln"><span class="lb">' + l.time + '：</span>' + l.name + '</div>';
+    });
+  }
+  openGenericSheet('ログイン履歴', 'この端末でログインが行われた記録のみです（他のスタッフの端末は含まれません）', html);
 }
 
 function showAdmin(){
