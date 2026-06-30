@@ -346,7 +346,7 @@ function showMain(){
     return;
   }
 
-  const myShifts = effectiveShifts(current);
+  const myShifts = sortShiftsByDate(effectiveShifts(current));
   if(myShifts.length === 0){
     list.innerHTML = '<div class="empty">7月のシフトはまだ登録されていません。</div>';
     return;
@@ -387,6 +387,15 @@ function showMain(){
 
 
 function shiftKey(name){ return 'kinshachi_shift_' + normName(name); }
+
+function sortShiftsByDate(shifts){
+  function dateKey(s){
+    const m = (s.date || '').match(/(\d+)月(\d+)日/);
+    if(!m) return 9999;
+    return parseInt(m[1],10) * 100 + parseInt(m[2],10);
+  }
+  return shifts.slice().sort((a,b)=> dateKey(a) - dateKey(b));
+}
 
 function effectiveShifts(person){
   try{
