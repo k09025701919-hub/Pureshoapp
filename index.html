@@ -113,16 +113,9 @@
       </div>
       <button class="primary" onclick="login()">ログイン</button>
       <div class="hint">初期パスワードは<strong>00000000</strong>（ゼロ8桁）です。どの端末からでも同じパスワードでログインできます。パスワードを変更したい場合は、ログイン後に設定画面から変更できます。</div>
-      <div class="field" style="margin-top:14px;">
-        <label>📋 勤怠報告（種類を選ぶとフォームへ移動します）</label>
-        <select id="attendance-select" onchange="openAttendanceForm(this.value); this.selectedIndex=0;">
-          <option value="">勤怠報告を選択...</option>
-          <option value="起床報告">起床報告</option>
-          <option value="出発報告">出発報告</option>
-          <option value="入館報告">入館報告</option>
-          <option value="退館報告">退館報告</option>
-          <option value="前日確認報告">前日確認報告</option>
-        </select>
+      <div style="margin-top:16px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📋 勤怠報告（タップするとフォームへ移動します）</div>
+        <div id="attendance-buttons" style="display:flex;flex-direction:column;gap:7px;"></div>
       </div>
     </main>
   </div>
@@ -739,14 +732,17 @@ function openLochan(place, role){
 function closeSheet(){ document.getElementById('overlay').classList.remove('show'); }
 function closeSheetOutside(e){ if(e.target.id==='overlay') closeSheet(); }
 
-function openAttendanceForm(type){
-  if(!type) return;
-  const url = ATTENDANCE_URLS[type];
-  if(!url){
-    alert('「' + type + '」のフォームURLはまだ設定されていません。事務局にお問い合わせください。');
-    return;
-  }
-  window.open(url, '_blank');
+function renderAttendanceButtons(){
+  const wrap = document.getElementById('attendance-buttons');
+  if(!wrap) return;
+  const items = ['前日確認報告','起床報告','出発報告','入館報告','退館報告'];
+  wrap.innerHTML = items.map(function(type){
+    const url = ATTENDANCE_URLS[type];
+    if(url){
+      return '<a href="' + url + '" target="_blank" rel="noopener" style="display:block;padding:11px 14px;border:1px solid var(--accent);border-radius:8px;color:var(--accent-ink);background:var(--accent-bg);text-decoration:none;font-size:14px;font-weight:700;text-align:center;">' + type + '</a>';
+    }
+    return '<div style="padding:11px 14px;border:1px solid var(--line);border-radius:8px;color:var(--muted);background:#f5f5f5;font-size:14px;text-align:center;">' + type + '（準備中）</div>';
+  }).join('');
 }
 
 function showChangePassword(){
@@ -774,6 +770,7 @@ function logout(){
   document.getElementById('login-err').style.display = 'none';
 }
 loadRemotePeopleIfConfigured();
+renderAttendanceButtons();
 </script>
 </body>
 </html>
